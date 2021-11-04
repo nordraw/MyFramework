@@ -12,6 +12,7 @@ class ShopSettings
     ];
 
     static private $_instance;
+
     private $baseSettings;
 
     private function __clone()

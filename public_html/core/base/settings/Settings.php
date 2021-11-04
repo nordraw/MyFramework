@@ -12,8 +12,8 @@ class Settings
 
     private $routes = [
         'admin' => [
-            'name' => 'admin',
-            'path' => 'core/admin/controllers/',
+            'alias' => 'admin',
+            'path' => 'core/admin/controller/',
             //human readable URL
             'hrUrl' => false,
         ],
@@ -25,9 +25,11 @@ class Settings
             'hrUrl' => false,
         ],
         'user' => [
-            'path' => 'core/user/controllers/',
+            'path' => 'core/user/controller/',
             'hrUrl' => true,
-            'routes' => [],
+            'routes' => [
+                'catalog' => 'site/input/output',
+            ],
         ],
         //Настройки по-умолчанию
         'default' => [
@@ -62,7 +64,6 @@ class Settings
     {
     }
 
-
     public function glueProperties($class)
     {
         $baseProperties = [];
@@ -71,7 +72,7 @@ class Settings
             $property = $class::get($name);
 
             if (is_array($property) && is_array($item)) {
-                $baseProperties[$name] = arrayMergeRecursive($this->$name, $property);
+                $baseProperties[$name] = $this->arrayMergeRecursive($this->$name, $property);
                 continue;
             }
 
