@@ -6,6 +6,17 @@ use core\base\settings\Settings;
 
 class ShopSettings
 {
+    private $routes = [
+        'plugins' => [
+            'path' => 'core/plugins/',
+            'hrUrl' => false,
+            'dir' => 'controller',
+            'routes' => [
+                'product' => 'goods',
+            ],
+        ],
+    ];
+
     private $templateArr = [
         'text' => ['name', 'phone', 'adress', 'price', 'short'],
         'textarea' => ['content', 'keywords', 'goods_content'],

@@ -12,7 +12,6 @@ class RouteController
     static private $_instance;
 
     protected $routes;
-
     protected $controller;
     protected $inputMethod;
     protected $outputMethod;
@@ -41,18 +40,47 @@ class RouteController
             $this->redirect(rtrim($address_str, '/'), 301);
         }
 
+        //Проверка на правильность введения корневой директории сайта в константе PATH
         $path = substr($_SERVER['PHP_SELF'], 0, strpos($_SERVER['PHP_SELF'], 'index.php'));
-
         if ($path === PATH) {
 
             $this->routes = Settings::get('routes');
 
             if (!$this->routes) throw new RouteException('Сайт находится на техническом обслуживании');
 
-            //Проверка, не пытается ли пользователь попасть в админ.панель
+            //Если пользователь пытается попасть в админ.панель
             if (strpos($address_str, $this->routes['admin']['alias']) === strlen(PATH)) {
+                $url = explode('/', substr($address_str, strlen(PATH . $this->routes['admin']['alias']) + 1));
 
-            } else {
+                //Проверка на плагин
+                if ($url[0] && is_dir($_SERVER['DOCUMENT_ROOT'] . PATH . $this->routes['plugins']['path'] . $url[0])) {
+                    $plugin = array_shift($url);
+
+                    //Проверка, существует ли для плагина файл настроек
+                    $pluginSettings = $this->routes['settings']['path'] . ucfirst($plugin . 'Settings');
+                    if (file_exists($_SERVER['DOCUMENT_ROOT'] . PATH . $pluginSettings . '.php')) {
+                        $pluginSettings = str_replace('/', '\\', $pluginSettings);
+                        $this->routes = $pluginSettings::get('routes');
+                    }
+
+                    $dir = $this->routes['plugins']['dir'] ? '/' . $this->routes['plugins']['dir'] . '/' : '/';
+                    $dir = str_replace('//', '/', $dir);
+
+                    $this->controller = $this->routes['plugins']['path'] . $plugin . $dir;
+
+                    $hrUrl = $this->routes['plugins']['hrUrl'];
+
+                    $route = 'plugins';
+                } else {
+                    $this->controller = $this->routes['admin']['path'];
+
+                    $hrUrl = $this->routes['admin']['hrUrl'];
+
+                    $route = 'admin';
+                }
+
+            } //Пользовательская часть
+            else {
                 $url = explode('/', substr($address_str, strlen(PATH)));
 
                 $hrUrl = $this->routes['user']['hrUrl'];
@@ -64,6 +92,27 @@ class RouteController
 
             $this->createRoute($route, $url);
 
+            if ($url[1]) {
+                $count = count($url);
+                $key = '';
+
+                if (!$hrUrl) {
+                    $i = 1;
+                } else {
+                    $this->parameters['alias'] = $url[1];
+                    $i = 2;
+                }
+
+                for (; $i < $count; $i++) {
+                    if (!$key) {
+                        $key = $url[$i];
+                        $this->parameters[$key] = '';
+                    } else {
+                        $this->parameters[$key] = $url[$i];
+                        $key = '';
+                    }
+                }
+            }
         } else {
             try {
                 throw new \Exception('Не корректная директория сайта');
@@ -73,6 +122,10 @@ class RouteController
         }
     }
 
+    /**
+     * @param $var <p>Часть приложения (admin,user,plugins)</p>
+     * @param $arr <p>Массив параметров запроса</p>
+     */
     private function createRoute($var, $arr)
     {
         $route = [];
@@ -92,6 +145,5 @@ class RouteController
 
         $this->inputMethod = $route[1] ? $route[1] : $this->routes['default']['inputMethod'];
         $this->outputMethod = $route[2] ? $route[2] : $this->routes['default']['outputMethod'];
-
     }
 }

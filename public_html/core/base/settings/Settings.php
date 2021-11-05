@@ -6,10 +6,6 @@ class Settings
 {
     static private $_instance;
 
-    private function __clone()
-    {
-    }
-
     private $routes = [
         'admin' => [
             'alias' => 'admin',
@@ -23,6 +19,7 @@ class Settings
         'plugins' => [
             'path' => 'core/plugins/',
             'hrUrl' => false,
+            'dir' => false,
         ],
         'user' => [
             'path' => 'core/user/controller/',
@@ -46,9 +43,8 @@ class Settings
         'textarea' => ['content', 'keywords'],
     ];
 
-    static public function get($property)
+    private function __clone()
     {
-        return self::getInstance()->$property;
     }
 
     static public function getInstance()
@@ -64,6 +60,21 @@ class Settings
     {
     }
 
+    /**
+     * Получить свойство класса
+     * @param $property
+     * @return mixed
+     */
+    static public function get($property)
+    {
+        return self::getInstance()->$property;
+    }
+
+    /**
+     * Функция для склейки свойств базового класса настроек с свойствами пользовательского класса
+     * @param $class
+     * @return array
+     */
     public function glueProperties($class)
     {
         $baseProperties = [];
