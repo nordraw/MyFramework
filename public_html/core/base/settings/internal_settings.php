@@ -26,6 +26,11 @@ const ADMIN_CSS_JS = [
     'scripts' => []
 ];
 
+const USER_CSS_JS = [
+    'styles' => ['css/style.css'],
+    'scripts' => []
+];
+
 function autoloadMainClasses($class_name)
 {
     $class_name = str_replace('\\', '/', $class_name);

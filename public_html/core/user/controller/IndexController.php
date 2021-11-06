@@ -11,7 +11,7 @@ class IndexController extends BaseController
     protected function inputData()
     {
         $name = 'Ivan';
-        $content = $this->render('', compact('name'));
+        $content = $_SERVER['HTTP_REFERER'];
         $header = $this->render(TEMPLATE . 'header');
         $footer = $this->render(TEMPLATE . 'footer');
 

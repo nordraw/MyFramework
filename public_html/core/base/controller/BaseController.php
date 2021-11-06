@@ -7,6 +7,8 @@ use core\base\settings\Settings;
 
 abstract class BaseController
 {
+    use \core\base\controller\BaseMethods;
+
     //Переменная для хранения страницы сайта
     protected $page;
 
