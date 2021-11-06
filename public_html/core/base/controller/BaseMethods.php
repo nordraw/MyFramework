@@ -4,41 +4,6 @@ namespace core\base\controller;
 
 trait BaseMethods
 {
-    protected $styles;
-    protected $scripts;
-
-    /**
-     * Инициализация стилей и скриптов, указанных в константах
-     * @param false $admin
-     */
-    protected function init($admin = false)
-    {
-        if (!$admin) {
-            if (USER_CSS_JS['styles']) {
-                foreach (USER_CSS_JS['styles'] as $item) {
-                    $this->styles[] = PATH . TEMPLATE . trim($item, '/');
-                }
-            }
-
-            if (USER_CSS_JS['scripts']) {
-                foreach (USER_CSS_JS['scripts'] as $item) {
-                    $this->scripts[] = PATH . TEMPLATE . trim($item, '/');
-                }
-            }
-        } else {
-            if (ADMIN_CSS_JS['styles']) {
-                foreach (USER_CSS_JS['styles'] as $item) {
-                    $this->styles[] = PATH . TEMPLATE . trim($item, '/');
-                }
-            }
-
-            if (ADMIN_CSS_JS['scripts']) {
-                foreach (USER_CSS_JS['scripts'] as $item) {
-                    $this->scripts[] = PATH . TEMPLATE . trim($item, '/');
-                }
-            }
-        }
-    }
 
     /**
      * Метод очистки строковых данных

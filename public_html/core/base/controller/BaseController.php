@@ -4,10 +4,11 @@ namespace core\base\controller;
 
 use core\base\exceptions\RouteException;
 use core\base\settings\Settings;
+use core\base\controller\BaseMethods;
 
 abstract class BaseController
 {
-    use \core\base\controller\BaseMethods;
+    use BaseMethods;
 
     //Переменная для хранения страницы сайта
     protected $page;
@@ -18,6 +19,9 @@ abstract class BaseController
     protected $inputMethod;
     protected $outputMethod;
     protected $parameters;
+
+    protected $styles;
+    protected $scripts;
 
     public function route()
     {
@@ -66,7 +70,7 @@ abstract class BaseController
 
         //Логирование ошибок
         if ($this->errors) {
-            $this->writeLog();
+            $this->writeLog($this->errors);
         }
 
         $this->getPage();
@@ -119,5 +123,38 @@ abstract class BaseController
             echo $this->page;
         }
         exit();
+    }
+
+    /**
+     * Инициализация стилей и скриптов, указанных в константах
+     * @param false $admin
+     */
+    protected function init($admin = false)
+    {
+        if (!$admin) {
+            if (USER_CSS_JS['styles']) {
+                foreach (USER_CSS_JS['styles'] as $item) {
+                    $this->styles[] = PATH . TEMPLATE . trim($item, '/');
+                }
+            }
+
+            if (USER_CSS_JS['scripts']) {
+                foreach (USER_CSS_JS['scripts'] as $item) {
+                    $this->scripts[] = PATH . TEMPLATE . trim($item, '/');
+                }
+            }
+        } else {
+            if (ADMIN_CSS_JS['styles']) {
+                foreach (USER_CSS_JS['styles'] as $item) {
+                    $this->styles[] = PATH . ADMIN_TEMPLATE . trim($item, '/');
+                }
+            }
+
+            if (ADMIN_CSS_JS['scripts']) {
+                foreach (USER_CSS_JS['scripts'] as $item) {
+                    $this->scripts[] = PATH . ADMIN_TEMPLATE . trim($item, '/');
+                }
+            }
+        }
     }
 }

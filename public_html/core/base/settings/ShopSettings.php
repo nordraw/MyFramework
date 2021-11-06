@@ -2,10 +2,13 @@
 
 namespace core\base\settings;
 
+use core\base\controller\Singleton;
 use core\base\settings\Settings;
 
 class ShopSettings
 {
+    use Singleton;
+
     private $routes = [
         'plugins' => [
             'path' => 'core/plugins/',
@@ -22,27 +25,20 @@ class ShopSettings
         'textarea' => ['content', 'keywords', 'goods_content'],
     ];
 
-    static private $_instance;
-
     private $baseSettings;
-
-    private function __clone()
-    {
-    }
 
     static public function get($property)
     {
         return self::getInstance()->$property;
     }
 
-    static public function getInstance()
+    static private function getInstance()
     {
         if (self::$_instance instanceof self) {
             return self::$_instance;
         }
 
-        self::$_instance = new self;
-        self::$_instance->baseSettings = Settings::getInstance();
+        self::instance()->baseSettings = Settings::instance();
         $baseProperties = self::$_instance->baseSettings->glueProperties(get_class());
         self::$_instance->setProperty($baseProperties);
 
