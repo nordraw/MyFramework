@@ -7,15 +7,11 @@ use core\base\exceptions\RouteException;
 use core\base\settings\Settings;
 use core\base\settings\ShopSettings;
 
-class RouteController
+class RouteController extends BaseController
 {
     static private $_instance;
 
     protected $routes;
-    protected $controller;
-    protected $inputMethod;
-    protected $outputMethod;
-    protected $parameters;
 
     private function __clone()
     {
@@ -48,12 +44,16 @@ class RouteController
 
             if (!$this->routes) throw new RouteException('Сайт находится на техническом обслуживании');
 
+            $url = explode('/', substr($address_str, strlen(PATH)));
+
             //Если пользователь пытается попасть в админ.панель
-            if (strpos($address_str, $this->routes['admin']['alias']) === strlen(PATH)) {
-                $url = explode('/', substr($address_str, strlen(PATH . $this->routes['admin']['alias']) + 1));
+            if ($url[0] && $url[0] === $this->routes['admin']['alias']) {
+
+                array_shift($url);
 
                 //Проверка на плагин
                 if ($url[0] && is_dir($_SERVER['DOCUMENT_ROOT'] . PATH . $this->routes['plugins']['path'] . $url[0])) {
+
                     $plugin = array_shift($url);
 
                     //Проверка, существует ли для плагина файл настроек
@@ -71,7 +71,8 @@ class RouteController
                     $hrUrl = $this->routes['plugins']['hrUrl'];
 
                     $route = 'plugins';
-                } else {
+                } //Админ.панель
+                else {
                     $this->controller = $this->routes['admin']['path'];
 
                     $hrUrl = $this->routes['admin']['hrUrl'];
@@ -81,8 +82,6 @@ class RouteController
 
             } //Пользовательская часть
             else {
-                $url = explode('/', substr($address_str, strlen(PATH)));
-
                 $hrUrl = $this->routes['user']['hrUrl'];
 
                 $this->controller = $this->routes['user']['path'];

@@ -25,7 +25,7 @@ class Settings
             'path' => 'core/user/controller/',
             'hrUrl' => true,
             'routes' => [
-                'catalog' => 'site/input/output',
+                'site' => 'index/inputData',
             ],
         ],
         //Настройки по-умолчанию
