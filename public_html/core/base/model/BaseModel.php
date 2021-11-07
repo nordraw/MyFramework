@@ -42,11 +42,9 @@ class BaseModel
                 //Если что-то пришло из БД
                 if ($result->num_rows) {
                     $res = [];
-
                     for ($i = 0; $i < $result->num_rows; $i++) {
                         $res[] = $result->fetch_assoc();
                     }
-
                     return $res;
                 }
 
@@ -77,11 +75,12 @@ class BaseModel
      * <p>'order' => ['fio', 'name']</p>
      * <p>'order_direction' => ['ASC', 'DESC']</p>
      * <p>'limit' => '1'</p>
+     * @return array|bool|int|string
+     * @throws DbException
      */
     final public function get($table, $set = [])
     {
         $fields = $this->createFields($table, $set);
-
         $where = $this->createWhere($table, $set);
 
         $join_arr = $this->createJoin($table, $set);
@@ -99,5 +98,61 @@ class BaseModel
         $query = "SELECT $fields FROM $table $join $where $order $limit";
 
         return $this->query($query);
+    }
+
+    /**
+     * @param false $table
+     * @param $set
+     * @return string
+     */
+    protected function createFields($table = false, $set)
+    {
+        $set['fields'] = (is_array($set['fields']) && !empty($set['fields']))
+            ? $set['fields'] : ['*'];
+
+        $table = $table ? $table . '.' : '';
+
+        $fields = '';
+
+        foreach ($set['fields'] as $field) {
+            $fields .= $table . $field . ',';
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @param false $table
+     * @param $set
+     * @return string
+     */
+    protected function createOrder($table = false, $set)
+    {
+        $table = $table ? $table . '.' : '';
+
+        $order_by = '';
+
+        if (is_array($set['order']) && !empty($set['order'])) {
+            $set['order_direction'] = (is_array($set['order_direction']) && !empty($set['order_direction']))
+                ? $set['order_direction'] : ['ASC'];
+
+            $order_by = 'ORDER BY ';
+
+            $direct_count = 0;
+            foreach ($set['order'] as $order) {
+                if ($set['order_direction'][$direct_count]) {
+                    $order_direction = strtoupper($set['order_direction'][$direct_count]);
+                    $direct_count++;
+                } else {
+                    $order_direction = strtoupper($set['order_direction'][$direct_count - 1]);
+                }
+
+                $order_by .= $table . $order . ' ' . $order_direction . ',';
+            }
+
+            $order_by = rtrim($order_by, ',');
+        }
+
+        return $order_by;
     }
 }
