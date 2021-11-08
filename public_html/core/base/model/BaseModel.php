@@ -82,21 +82,46 @@ class BaseModel
      * <p>'order' => ['fio', 'name']</p>
      * <p>'order_direction' => ['ASC', 'DESC']</p>
      * <p>'limit' => '1'</p>
+     * <p>'join' => [
+     *      'join_table1' => [
+     *          Таблица, к которой нужно присоединиться
+     *          'table' => 'join_table1',
+     *          'fields' => ['id as j_id', 'name as j_name'],
+     *          'type' => 'left',
+     *          'where' => ['name' => 'sasha'],
+     *          'operand' => ['='],
+     *          'condition' => ['OR'],
+     *          'group_condition' => 'AND',
+     *          'on' => [
+     *               'table' => 'teachers',
+     *               'fields' => ['id', 'name']
+     *          ],
+     *      ],
+     *          'join_table2' => [
+     *          'table' => 'join_table2',
+     *          'fields' => ['id as j_id', 'name as j_name'],
+     *          'type' => 'left',
+     *          'where' => ['name' => 'sasha'],
+     *          'operand' => ['='],
+     *          'condition' => ['AND'],
+     *          'on' => ['id', 'name']
+     *      ]
+     * ]</p>
      * @return array|bool|int|string
      * @throws DbException
-     * '= <> IN NOT IN LIKE (SELECT * FROM ......)'
      */
     final public function get($table, $set = [])
     {
-        $fields = $this->createFields($table, $set);
+        $fields = $this->createFields($set, $table);
 
-        $where = $this->createWhere($table, $set);
+        $where = $this->createWhere($set, $table);
 
-        exit(var_dump($where));
+        if (!$where) $new_where = true;
+        else $new_where = false;
 
-        $join_arr = $this->createJoin($table, $set);
+        $join_arr = $this->createJoin($set, $table, $new_where);
 
-        $order = $this->createOrder($table, $set);
+        $order = $this->createOrder($set, $table);
 
         $fields .= $join_arr['fields'];
         $join = $join_arr['join'];
@@ -104,10 +129,12 @@ class BaseModel
 
         $fields = rtrim($fields, ',');
 
-        $limit = $set['limit'] ? $set['limit'] : '';
+        $limit = $set['limit'] ? 'LIMIT ' . $set['limit'] : '';
 
         $query = "SELECT $fields FROM $table $join $where $order $limit";
 
+        /////////////////E X I T///////////////////
+        exit(var_dump($this->query($query)));
         return $this->query($query);
     }
 
@@ -116,7 +143,7 @@ class BaseModel
      * @param $set
      * @return string
      */
-    protected function createFields($table = false, $set)
+    protected function createFields($set, $table = false)
     {
         //Проверяем, пришла ли таблица для формирования запроса вида: "SELECT * FROM table.value....."
         $table = $table ? $table . '.' : '';
@@ -138,7 +165,7 @@ class BaseModel
      * @param $set
      * @return string
      */
-    protected function createOrder($table = false, $set)
+    protected function createOrder($set, $table = false)
     {
         $table = $table ? $table . '.' : '';
 
@@ -159,7 +186,9 @@ class BaseModel
                     $order_direction = strtoupper($set['order_direction'][$direct_count - 1]);
                 }
 
-                $order_by .= $table . $order . ' ' . $order_direction . ',';
+                //Проверка в случае с запросом с UNION
+                if (is_int($order)) $order_by .= $order . ' ' . $order_direction . ',';
+                else $order_by .= $table . $order . ' ' . $order_direction . ',';
             }
 
             $order_by = rtrim($order_by, ',');
@@ -179,7 +208,7 @@ class BaseModel
      * <p>'operand' => ['IN', 'LIKE%', '<>']</p>
      * <p>'condition' => ['AND']</p>
      */
-    protected function createWhere($table = false, $set, $instruction = 'WHERE ')
+    protected function createWhere($set, $table = false, $instruction = 'WHERE ')
     {
         $table = $table ? $table . '.' : '';
 
@@ -219,7 +248,8 @@ class BaseModel
                 }
 
                 if ($operand === 'IN' || $operand === 'NOT IN') {
-                    if (is_string($item) && strpos($item, 'SELECT')) {
+                    //Если пришёл вложенный запрос вида: (SELECT * .....)
+                    if (is_string($item) && strpos($item, 'SELECT') === 0) {
                         $in_str = $item;
                     } else {
                         if (is_array($item)) $temp_item = $item;
@@ -227,7 +257,7 @@ class BaseModel
 
                         $in_str = '';
                         foreach ($temp_item as $value) {
-                            $in_str .= "'" . trim($value) . "',";
+                            $in_str .= "'" . addslashes(trim($value)) . "',";
                         }
                     }
 
@@ -250,14 +280,14 @@ class BaseModel
                         }
                     }
 
-                    $where .= $table . $key . ' LIKE ' . "'" . $item . "' $condition";
+                    $where .= $table . $key . ' LIKE ' . "'" . addslashes($item) . "' $condition";
                 } //Если приходят обычные операторы, например "=", "<>"
                 else {
                     //Если в $item лежит вложенный запрос
                     if (strpos($item, 'SELECT') === 0) {
                         $where .= $table . $key . $operand . ' (' . $item . ") $condition";
                     } else {
-                        $where .= $table . $key . $operand . "'" . $item . "' $condition";
+                        $where .= $table . $key . $operand . "'" . addslashes($item) . "' $condition";
                     }
                 }
             }
@@ -267,5 +297,95 @@ class BaseModel
 
             return $where;
         }
+    }
+
+    /**
+     * @param $table
+     * @param $set
+     * @param false $new_where
+     *
+     * 'join' => [
+     *      'join_table1' => [
+     *          'table' => 'join_table1',
+     *          'fields' => ['id as j_id', 'name as j_name'],
+     *          'type' => 'left',
+     *          'where' => ['name' => 'sasha'],
+     *          'operand' => ['='],
+     *          'condition' => ['OR'],
+     *          'on' => [
+     *               'table' => 'teachers',
+     *               'fields' => ['id', 'name']
+     *          ]
+     *      ],
+     *      'join_table2' => [.......],
+     */
+    protected function createJoin($set, $table, $new_where = false)
+    {
+        $fields = '';
+        $join = '';
+        $where = '';
+
+        if ($set['join']) {
+            $join_table = $table;
+
+            foreach ($set['join'] as $key => $item) {
+                //Если название таблицы не указано
+                if (is_int($key)) {
+                    if (!$item['table']) {
+                        continue;
+                    } else {
+                        $key = $item['table'];
+                    }
+                }
+
+                if ($join) $join .= ' ';
+
+                //Если не существует условия объединения таблиц,
+                //выполнение каких-либо действий не имеет смысла
+                if ($item['on']) {
+                    $join_fields = [];
+
+                    switch (2) {
+                        case count($item['on']['fields']):
+                            $join_fields = $item['on']['fields'];
+                            break;
+                        case count($item['on']):
+                            $join_fields = $item['on'];
+                            break;
+                        default:
+                            continue 2;
+                    }
+
+                    //Если тип JOIN`а не пришёл, по-умолчанию используется LEFT JOIN
+                    if (!$item['type']) $join .= 'LEFT JOIN ';
+                    else $join .= trim(strtoupper($item['type'])) . ' JOIN ';
+
+                    $join .= $key . ' ON ';
+
+                    if ($item['on']['table']) $join .= $item['on']['table'];
+                    else $join .= $join_table;
+
+                    $join .= '.' . $join_fields[0] . '=' . $key . '.' . $join_fields[1];
+
+                    //Присваиваем join_table значение текущей таблицы,
+                    //чтобы следующая итерация цикла могла работать с предыдущей таблицей
+                    $join_table = $key;
+
+                    if ($new_where) {
+                        if ($item['where']) {
+                            $new_where = false;
+                        }
+
+                        $group_condition = 'WHERE';
+                    } else {
+                        $group_condition = $item['group_condition'] ? strtoupper($item['group_condition']) : 'AND';
+                    }
+
+                    $fields .= $this->createFields($item, $key);
+                    $where .= $this->createWhere($item, $key, $group_condition);
+                }
+            }
+        }
+        return compact('fields', 'join', 'where');
     }
 }
