@@ -134,8 +134,61 @@ class BaseModel extends BaseModelMethods
 
         $query = "SELECT $fields FROM $table $join $where $order $limit";
 
-        /////////////////E X I T///////////////////
-        exit(var_dump($this->query($query)));
         return $this->query($query);
+    }
+
+    /**
+     * @param $table - таблица для вставки данных
+     * @param array $set - массив параметров:
+     * <p>'fields' => [поле => значение]; - если не указан, то обрабатывается $_POST[поле => значение]
+     *    разрешена передача MySql функции обычной строкой, например, NOW()</p>
+     * <p>'files' => [поле => значение]; - можно подать массив вида [поле => [массив значений]]</p>
+     * <p>'except' => ['исключение 1', 'исключение 2'] - исключает данные элементы массива из добавленных в запрос</p>
+     * <p>'return_id' => true | false - возвращать или нет идентификатор вставленной записи</p>
+     * @return mixed
+     */
+    final public function add($table, $set)
+    {
+        $set['fields'] = (is_array($set['fields']) && !empty($set['fields'])) ? $set['fields'] : $_POST;
+        $set['files'] = (is_array($set['files']) && !empty($set['files'])) ? $set['files'] : false;
+
+        //Если не пришли ни поля, ни данные для вставки, выполнение скрипта не имеет смысла
+        if (!$set['fields'] && !$set['files']) return false;
+
+        $set['except'] = (is_array($set['except']) && !empty($set['except'])) ? $set['except'] : false;
+        $set['return_id'] = $set['return_id'] ? true : false;
+
+        $insert_arr = $this->createInsert($set['fields'], $set['files'], $set['except']);
+
+        if ($insert_arr) {
+            $query = "INSERT INTO $table({$insert_arr['fields']}) VALUES ({$insert_arr['values']});";
+
+            return $this->query($query, 'c', $set['return_id']);
+        }
+
+        return false;
+    }
+
+    /**
+     * Показать информацию о полях в таблице
+     * @param $table
+     * @throws DbException
+     */
+    final public function showColumns($table)
+    {
+        $query = "SHOW COLUMNS FROM $table";
+        $res = $this->query($query);
+
+        $columns = [];
+
+        if ($res) {
+            foreach ($res as $row) {
+                $columns[$row['Field']] = $row;
+                //Если ключ является первичным
+                if ($row['Key'] === 'PRI') $columns['id_row'] = $row['Field'];
+            }
+        }
+
+        return $columns;
     }
 }
